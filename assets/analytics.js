@@ -3,7 +3,7 @@
  var id=113810500,prefKey='ak_analytics_preferences_v2',noticeKey='ak_cookie_notice_v2',oldKey='ak_analytics_consent_v1';
  var ownScript=document.currentScript,track=ownScript&&ownScript.getAttribute('data-track')==='true';
  var base=new URL('../',ownScript.src),policyURL=new URL('policy/',base).href,infoURL=new URL('analytics-consent/',base).href;
- var enabled=true,started=false,banner,status,panel,toggle;
+ var enabled=true,started=false,banner;
  function get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
  function put(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
  function readEnabled(){
@@ -21,25 +21,10 @@
  }
  function updateSpace(){var h=banner&&!banner.hidden?Math.ceil(banner.getBoundingClientRect().height)+32:0;document.documentElement.style.setProperty('--ak-notice-space',h+'px')}
  function update(){
-  if(status)status.textContent=enabled?'Аналитика включена.':'Аналитика отключена.';
-  if(toggle)toggle.textContent=enabled?'Отключить аналитику':'Включить аналитику';
   if(banner)banner.hidden=!track||noticeSeen()||!enabled;
   updateSpace();
  }
  function dismiss(){put(noticeKey,{version:2,at:Date.now()});banner.hidden=true;updateSpace()}
- function deleteAnalyticsCookies(){
-  document.cookie.split(';').forEach(function(c){var name=c.split('=')[0].trim();if(!/^_ym/.test(name))return;
-   var domains=['',location.hostname,'.'+location.hostname],labels=location.hostname.split('.');if(labels.length>2)domains.push('.'+labels.slice(-2).join('.'));
-   domains.forEach(function(d){document.cookie=name+'=; Max-Age=0; Path=/'+(d?'; Domain='+d:'')+'; SameSite=Lax'})
-  });
-  try{Object.keys(localStorage).forEach(function(k){if(/^_ym/.test(k))localStorage.removeItem(k)})}catch(e){}
- }
- function setEnabled(next){
-  var wasStarted=started;enabled=next;put(prefKey,{version:2,enabled:next,at:Date.now()});update();
-  if(next){start();return;}
-  if(wasStarted&&typeof window.ym==='function'){try{window.ym(id,'destruct')}catch(e){}}
-  deleteAnalyticsCookies();if(wasStarted)location.reload();
- }
  function initUI(){
   enabled=readEnabled();
   banner=document.createElement('section');banner.className='ak-consent';banner.setAttribute('aria-label','Использование cookies');
@@ -50,14 +35,7 @@
   var actions=document.createElement('div');actions.className='ak-consent__actions';
   var accept=document.createElement('button');accept.type='button';accept.textContent='Подтвердить';accept.setAttribute('data-ak-confirm','');accept.addEventListener('click',dismiss);actions.append(accept);inner.append(actions);
   var close=document.createElement('button');close.type='button';close.className='ak-consent__close';close.textContent='×';close.setAttribute('aria-label','Закрыть уведомление');close.setAttribute('data-ak-close','');close.addEventListener('click',dismiss);inner.append(close);banner.append(inner);document.body.append(banner);
-  var footer=document.createElement('aside');footer.className='ak-privacy';footer.setAttribute('aria-label','Настройки аналитики');
-  var settings=document.createElement('button');settings.type='button';settings.textContent='Настройки аналитики';settings.setAttribute('data-ak-settings','');settings.setAttribute('aria-expanded','false');settings.setAttribute('aria-controls','ak-analytics-settings');
-  panel=document.createElement('div');panel.id='ak-analytics-settings';panel.className='ak-privacy__panel';panel.hidden=true;
-  status=document.createElement('p');status.setAttribute('aria-live','polite');
-  var explanation=document.createElement('p');explanation.textContent='Яндекс.Метрика запускается автоматически. Здесь можно отключить сбор статистики для этого браузера. Закрытие уведомления не меняет эту настройку.';
-  toggle=document.createElement('button');toggle.type='button';toggle.setAttribute('data-ak-toggle','');toggle.addEventListener('click',function(){setEnabled(!enabled)});
-  settings.addEventListener('click',function(){panel.hidden=!panel.hidden;settings.setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden)panel.scrollIntoView({block:'nearest',behavior:'auto'})});
-  panel.append(status,explanation,toggle);footer.append(settings,panel);document.body.append(footer);update();start();
+  update();start();
   if(window.ResizeObserver)new ResizeObserver(updateSpace).observe(banner);window.addEventListener('resize',updateSpace);
  }
  document.addEventListener('click',function(e){
